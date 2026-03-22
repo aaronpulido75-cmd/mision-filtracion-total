@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia Excretora PRO</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #e3f2fd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            transition: all 0.4s ease;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 200px;
+        }
+
+        /* Efectos de fondo */
+        body.wrong {
+            background-color: #ffcdd2;
+            background-image: url('https://cdn-icons-png.flaticon.com/512/595/595067.png');
+        }
+        body.correct {
+            background-color: #c8e6c9;
+            background-image: url('https://cdn-icons-png.flaticon.com/512/2864/2864232.png');
+        }
+
+        #game-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            max-width: 550px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        #lives { color: #e91e63; letter-spacing: 3px; font-size: 1.5rem; }
+        
+        .question-box { min-height: 80px; display: flex; align-items: center; justify-content: center; }
+
+        .options { display: grid; gap: 12px; margin-top: 20px; }
+        
+        button {
+            padding: 14px;
+            border: 2px solid #2196f3;
+            border-radius: 12px;
+            background: white;
+            color: #1565c0;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+
+        button:hover:not(:disabled) { background: #2196f3; color: white; transform: translateY(-2px); }
+        button:disabled { opacity: 0.7; cursor: not-allowed; }
+        
+        .hidden { display: none; }
+        .btn-restart { background: #1565c0; color: white; margin-top: 20px; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="stats-bar">
+        <div id="lives">❤️❤️❤️</div>
+        <div style="color: #1565c0;">Puntos: <span id="score-val">0</span></div>
+    </div>
+
+    <div id="quiz-section">
+        <div class="question-box">
+            <div id="question-text" style="font-size: 1.2rem; font-weight: bold;"></div>
+        </div>
+        <div id="options-container" class="options"></div>
+        <p style="color: #888; margin-top: 20px; font-size: 0.9rem;">Pregunta <span id="current-num">1</span> de 25</p>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <h2 id="result-title"></h2>
+        <p id="final-msg" style="font-size: 1.3rem;"></p>
+        <button class="btn-restart" onclick="restartGame()">REINTENTAR DESAFÍO</button>
+    </div>
+</div>
+
+<script>
+    const questionsBank = [
+        { q: "¿Cuál es la función principal del sistema urinario?", a: ["Filtrar la sangre", "Bombear sangre", "Digerir grasas", "Respirar"], c: "Filtrar la sangre" },
+        { q: "¿Cómo se llama la capa externa del riñón?", a: ["Corteza renal", "Médula renal", "Pelvis renal", "Uretra"], c: "Corteza renal" },
+        { q: "¿En qué parte del riñón se encuentran las pirámides de Malpighi?", a: ["Médula renal", "Corteza", "Uréter", "Cápsula"], c: "Médula renal" },
+        { q: "¿Qué nombre recibe el embudo que recoge la orina en el riñón?", a: ["Pelvis renal", "Nefrona", "Vejiga", "Arteria"], c: "Pelvis renal" },
+        { q: "¿Cuál es la unidad microscópica que forma la orina?", a: ["Nefrona", "Neurona", "Alvéolo", "Vellosidad"], c: "Nefrona" },
+        { q: "¿Qué conductos conectan los riñones con la vejiga?", a: ["Uréteres", "Uretra", "Venas", "Arterias"], c: "Uréteres" },
+        { q: "¿Qué órgano almacena la orina?", a: ["Vejiga", "Hígado", "Riñón", "Páncreas"], c: "Vejiga" },
+        { q: "¿Qué conducto lleva la orina hacia el exterior del cuerpo?", a: ["Uretra", "Uréter", "Esófago", "Vena cava"], c: "Uretra" },
+        { q: "¿Cómo se llama el esfínter que controlamos para orinar?", a: ["Esfínter uretral", "Píloro", "Cardias", "Válvula ileocecal"], c: "Esfínter uretral" },
+        { q: "¿Qué porcentaje aproximado de la orina es agua?", a: ["95%", "50%", "10%", "100%"], c: "95%" },
+        { q: "¿Qué pigmento da el color amarillo a la orina?", a: ["Urocromo", "Melanina", "Clorofila", "Hemoglobina"], c: "Urocromo" },
+        { q: "¿Qué desecho nitrogenado eliminamos principalmente?", a: ["Urea", "Amoníaco puro", "Dióxido de carbono", "Glucosa"], c: "Urea" },
+        { q: "¿Dónde ocurre la filtración de la sangre dentro de la nefrona?", a: ["Glomérulo", "Asa de Henle", "Uréter", "Vena renal"], c: "Glomérulo" },
+        { q: "¿Qué glándulas eliminan sustancias de desecho a través de la piel?", a: ["Sudoríparas", "Salivales", "Tiroides", "Adrenales"], c: "Sudoríparas" },
+        { q: "¿Qué órgano excreta el exceso de CO2?", a: ["Pulmones", "Riñones", "Piel", "Intestino"], c: "Pulmones" },
+        { q: "¿Qué arteria lleva sangre sucia al riñón?", a: ["Arteria renal", "Arteria aorta", "Arteria pulmonar", "Vena renal"], c: "Arteria renal" },
+        { q: "¿Qué proceso devuelve nutrientes a la sangre en la nefrona?", a: ["Reabsorción", "Filtración", "Excreción", "Digestión"], c: "Reabsorción" },
+        { q: "¿Cómo se llama la inflamación de la vejiga?", a: ["Cistitis", "Nefritis", "Gastritis", "Rinitis"], c: "Cistitis" },
+        { q: "¿Qué son los 'cálculos renales'?", a: ["Piedras de sales minerales", "Células nuevas", "Bacterias", "Grasa"], c: "Piedras de sales minerales" },
+        { q: "¿Qué indica la presencia de glucosa en la orina?", a: ["Posible diabetes", "Buena salud", "Mucha energía", "Falta de agua"], c: "Posible diabetes" },
+        { q: "¿Qué líquido producen las glándulas sudoríparas?", a: ["Sudor", "Orina", "Bilis", "Sangre"], c: "Sudor" },
+        { q: "¿Cuál es la función del sudor además de excretar?", a: ["Regular la temperatura", "Digestión", "Oír mejor", "Fabricar sangre"], c: "Regular la temperatura" },
+        { q: "¿Cuántos riñones tenemos normalmente?", a: ["Dos", "Uno", "Tres", "Cuatro"], c: "Dos" },
+        { q: "¿Hacia dónde va la sangre limpia que sale del riñón?", a: ["Vena renal", "Uréter", "Vejiga", "Uretra"], c: "Vena renal" },
+        { q: "¿Qué técnica médica sustituye al riñón cuando este falla?", a: ["Diálisis", "Radiografía", "Análisis de sangre", "Ecografía"], c: "Diálisis" }
+    ];
+
+    let currentQuestions = [];
+    let currentIdx = 0;
+    let score = 0;
+    let lives = 3;
+
+    function shuffle(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    function initGame() {
+        // Mezclar preguntas y seleccionar las 25
+        currentQuestions = shuffle([...questionsBank]);
+        currentIdx = 0;
+        score = 0;
+        lives = 3;
+        updateUI();
+        loadQuestion();
+    }
+
+    function updateUI() {
+        document.getElementById("score-val").innerText = score;
+        document.getElementById("lives").innerText = "❤️".repeat(lives);
+        document.getElementById("quiz-section").classList.remove("hidden");
+        document.getElementById("result-screen").classList.add("hidden");
+        document.body.className = "";
+    }
+
+    function loadQuestion() {
+        const qData = currentQuestions[currentIdx];
+        document.getElementById("current-num").innerText = currentIdx + 1;
+        document.getElementById("question-text").innerText = qData.q;
+        
+        const container = document.getElementById("options-container");
+        container.innerHTML = "";
+        
+        // Mezclar las respuestas
+        const shuffledAnswers = shuffle([...qData.a]);
+        
+        shuffledAnswers.forEach(ans => {
+            const btn = document.createElement("button");
+            btn.innerText = ans;
+            btn.onclick = () => checkAnswer(ans, qData.c);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(chosen, correct) {
+        const buttons = document.querySelectorAll(".options button");
+        buttons.forEach(b => b.disabled = true);
+
+        if (chosen === correct) {
+            score++;
+            document.getElementById("score-val").innerText = score;
+            document.body.className = "correct";
+        } else {
+            lives--;
+            document.getElementById("lives").innerText = "❤️".repeat(lives <= 0 ? 0 : lives);
+            document.body.className = "wrong";
+            if (lives <= 0) {
+                setTimeout(() => endGame(false), 550);
+                return;
+            }
+        }
+
+        setTimeout(() => {
+            document.body.className = "";
+            currentIdx++;
+            if (currentIdx < currentQuestions.length) {
+                loadQuestion();
+            } else {
+                endGame(true);
+            }
+        }, 550);
+    }
+
+    function endGame(win) {
+        document.getElementById("quiz-section").classList.add("hidden");
+        document.getElementById("result-screen").classList.remove("hidden");
+        document.body.className = "";
+        
+        const title = document.getElementById("result-title");
+        if (win) {
+            title.innerText = "¡MAESTRO DEL EXCRETOR! 🏆";
+            title.style.color = "#2e7d32";
+        } else {
+            title.innerText = "FIN DE LA PARTIDA 💀";
+            title.style.color = "#c62828";
+        }
+        document.getElementById("final-msg").innerText = `Puntuación final: ${score} / 25`;
+    }
+
+    function restartGame() {
+        initGame();
+    }
+
+    // Arrancar el juego por primera vez
+    initGame();
+</script>
+
+</body>
+</html>
